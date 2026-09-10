@@ -27,7 +27,7 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
 
     path('users-list/', UserListView.as_view(), name='user-list'),
-    path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
-    path('users/<int:pk>/update/', UserUpdateView.as_view(), name='user-update'),
-    path('users/<int:pk>/delete/', UserDeleteView.as_view(), name='user-delete'),
+    path('users/<int:pk>/',UserDetailView.as_view(), name='user-detail'),
+    path('users/<int:pk>/update/',  UserUpdateView.as_view(), name='user-update'),
+    path('users/<int:pk>/delete/',  UserDeleteView.as_view(), name='user-delete')
 ]
