@@ -1,0 +1,78 @@
+name: Post Service CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: post-service-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: post_db_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POST_DB_NAME: post_db_test
+      POST_DB_USER: testuser
+      POST_DB_PASSWORD: testpass
+      POST_DB_HOST: localhost
+      POST_DB_PORT: 5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+          cache-dependency-path: post_service/requirements.txt
+      - run: pip install -r post_service/requirements.txt
+      - working-directory: post_service
+        run: python manage.py migrate --noinput
+      - working-directory: post_service
+        run: python manage.py test
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set lowercase owner name  
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./post_service
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/post-service:${{ github.sha }}
+            ghcr.io/${{ env.OWNER_LC }}/post-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
