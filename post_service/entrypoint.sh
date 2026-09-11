@@ -21,4 +21,4 @@ python manage.py migrate --noinput
 
 # Start Django server on the dynamic port
 echo "Starting Django server ..."
-exec python manage.py runserver 0.0.0.0:8000
+exec python manage.py runserver 0.0.0.0:8001
