@@ -1,19 +1,19 @@
-name: User Service CI
+name: Post Service CI
 
 on:
   push:
     branches: [main, develop]
     paths:
-      - 'user_service/**'
-      - '.github/workflows/user-service-ci.yml'
+      - 'post_service/**'
+      - '.github/workflows/post-service-ci.yml'
   pull_request:
     branches: [main, develop]
     paths:
-      - 'user_service/**'
-      - '.github/workflows/user-service-ci.yml'
+      - 'post_service/**'
+      - '.github/workflows/post-service-ci.yml'
 
 concurrency:
-  group: user-service-${{ github.ref }}
+  group: post-service-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: user_db_test
+          POSTGRES_DB: post_db_test
           POSTGRES_USER: testuser
           POSTGRES_PASSWORD: testpass
         ports:
@@ -36,22 +36,22 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      USER_DB_NAME: user_db_test
-      USER_DB_USER: testuser
-      USER_DB_PASSWORD: testpass
-      USER_DB_HOST: localhost
-      USER_DB_PORT: 5432
+      POST_DB_NAME: post_db_test
+      POST_DB_USER: testuser
+      POST_DB_PASSWORD: testpass
+      POST_DB_HOST: localhost
+      POST_DB_PORT: 5432
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
-          cache-dependency-path: user_service/requirements.txt
-      - run: pip install -r user_service/requirements.txt
-      - working-directory: user_service
+          cache-dependency-path: post_service/requirements.txt
+      - run: pip install -r post_service/requirements.txt
+      - working-directory: post_service
         run: python manage.py migrate --noinput
-      - working-directory: user_service
+      - working-directory: post_service
         run: python manage.py test
 
   build-and-push:
@@ -76,9 +76,9 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ./user_service
+          context: ./post_service
           push: true
           tags: |
-            ghcr.io/${{ env.OWNER_LC }}/user-service:dev-${{ github.sha }}
+            ghcr.io/${{ env.OWNER_LC }}/post-service:dev-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

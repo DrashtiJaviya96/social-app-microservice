@@ -1,0 +1,41 @@
+name: Promote to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Which service to promote'
+        required: true
+        type: choice
+        options:
+          - user-service
+          - post-service
+      dev_sha:
+        description: 'The dev-<sha> tag to promote (just the sha part)'
+        required: true
+      version:
+        description: 'New production version tag, e.g. v1.0.0'
+        required: true
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set lowercase owner name
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Retag dev image for production
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ env.OWNER_LC }}/${{ inputs.service }}:${{ inputs.version }} \
+            --tag ghcr.io/${{ env.OWNER_LC }}/${{ inputs.service }}:latest \
+            ghcr.io/${{ env.OWNER_LC }}/${{ inputs.service }}:dev-${{ inputs.dev_sha }}
