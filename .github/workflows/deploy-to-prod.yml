@@ -42,3 +42,47 @@ jobs:
             --tag ghcr.io/${{ env.OWNER_LC }}/post-service:${{ inputs.version }} \
             --tag ghcr.io/${{ env.OWNER_LC }}/post-service:latest \
             ghcr.io/${{ env.OWNER_LC }}/post-service:dev-${{ inputs.post_dev_sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file infrastructure/ec2-stack.yaml \
+            --stack-name social-app-stack \
+            --parameter-overrides KeyName=social-app-deploy-key
+
+      - name: Get instance IP
+        run: |
+          IP=$(aws cloudformation describe-stacks \
+            --stack-name social-app-stack \
+            --query "Stacks[0].Outputs[?OutputKey=='PublicIP'].OutputValue" \
+            --output text)
+          echo "INSTANCE_IP=$IP" >> "$GITHUB_ENV"
+
+      - name: Wait for instance to be SSH-ready
+        run: sleep 60
+
+      - name: Deploy containers via SSH
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          IP: ${{ env.INSTANCE_IP }}
+        run: |
+          echo "$SSH_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$IP << EOF
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker pull ghcr.io/${{ env.OWNER_LC }}/user-service:${{ inputs.version }}
+            docker pull ghcr.io/${{ env.OWNER_LC }}/post-service:${{ inputs.version }}
+            docker stop user-service post-service || true
+            docker rm user-service post-service || true
+            docker run -d --name user-service -p 8000:8000 --restart unless-stopped \
+              ghcr.io/${{ env.OWNER_LC }}/user-service:${{ inputs.version }}
+            docker run -d --name post-service -p 8001:8001 --restart unless-stopped \
+              ghcr.io/${{ env.OWNER_LC }}/post-service:${{ inputs.version }}
+          EOF
