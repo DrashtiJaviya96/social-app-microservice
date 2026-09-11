@@ -5,12 +5,12 @@ on:
     branches: [main, develop]
     paths:
       - 'post_service/**'
-      - '.github/workflows/post_service-ci.yml'
+      - '.github/workflows/post-service-ci.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'post_service/**'
-      - '.github/workflows/post_service-ci.yml'
+      - '.github/workflows/post-service-ci.yml'
 
 concurrency:
   group: post-service-${{ github.ref }}
