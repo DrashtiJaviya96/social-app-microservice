@@ -4,10 +4,15 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase #DRF API endpoint tests
 from .models import Post
+from django.contrib.auth.models import User
 
 
 class PostAPITest(APITestCase):
     def setUp(self):
+        self.auth_user = User.objects.create_user(      
+            username="john123", password="Xk9$vLm2qP"
+        )
+        self.client.force_authenticate(user=self.auth_user)
         self.post = Post.objects.create(
             title="Hello",
             content="Hello content",
