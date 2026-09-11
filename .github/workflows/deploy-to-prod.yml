@@ -78,13 +78,22 @@ jobs:
           echo "$SSH_KEY" > key.pem
           chmod 600 key.pem
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$IP << EOF
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+                        docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker network create app-net || true
+            docker run -d --name shared-db --network app-net \
+              -e POSTGRES_DB=shared_db -e POSTGRES_USER=appuser -e POSTGRES_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
+              --restart unless-stopped postgres:15 || true
+            sleep 10
             docker pull ghcr.io/${{ env.OWNER_LC }}/user-service:${{ inputs.version }}
             docker pull ghcr.io/${{ env.OWNER_LC }}/post-service:${{ inputs.version }}
             docker stop user-service post-service || true
             docker rm user-service post-service || true
-            docker run -d --name user-service -p 8000:8000 --restart unless-stopped \
+            docker run -d --name user-service --network app-net -p 8000:8000 --restart unless-stopped \
+              -e USER_DB_HOST=shared-db -e USER_DB_PORT=5432 -e USER_DB_NAME=shared_db \
+              -e USER_DB_USER=appuser -e USER_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
               ghcr.io/${{ env.OWNER_LC }}/user-service:${{ inputs.version }}
-            docker run -d --name post-service -p 8001:8001 --restart unless-stopped \
+            docker run -d --name post-service --network app-net -p 8001:8001 --restart unless-stopped \
+              -e POST_DB_HOST=shared-db -e POST_DB_PORT=5432 -e POST_DB_NAME=shared_db \
+              -e POST_DB_USER=appuser -e POST_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
               ghcr.io/${{ env.OWNER_LC }}/post-service:${{ inputs.version }}
           EOF
