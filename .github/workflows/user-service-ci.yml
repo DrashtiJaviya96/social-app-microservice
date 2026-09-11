@@ -3,8 +3,14 @@ name: User Service CI
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'user_service/**'
+      - '.github/workflows/user-service-ci.yml'
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'user_service/**'
+      - '.github/workflows/user-service-ci.yml'
 
 concurrency:
   group: user-service-${{ github.ref }}
