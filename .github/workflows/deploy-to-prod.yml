@@ -1,24 +1,20 @@
-name: Promote to Production
+name: deploy to Production
 
 on:
   workflow_dispatch:
     inputs:
-      service:
-        description: 'Which service to promote'
+      user_dev_sha:
+        description: 'dev-<sha> for user-service (just the sha part)'
         required: true
-        type: choice
-        options:
-          - user-service
-          - post-service
-      dev_sha:
-        description: 'The dev-<sha> tag to promote (just the sha part)'
+      post_dev_sha:
+        description: 'dev-<sha> for post-service (just the sha part)'
         required: true
       version:
         description: 'New production version tag, e.g. v1.0.0'
         required: true
 
 jobs:
-  promote:
+  deploy-to-prod:
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -33,9 +29,16 @@ jobs:
       - name: Set lowercase owner name
         run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
-      - name: Retag dev image for production
+      - name: Retag user-service
         run: |
           docker buildx imagetools create \
-            --tag ghcr.io/${{ env.OWNER_LC }}/${{ inputs.service }}:${{ inputs.version }} \
-            --tag ghcr.io/${{ env.OWNER_LC }}/${{ inputs.service }}:latest \
-            ghcr.io/${{ env.OWNER_LC }}/${{ inputs.service }}:dev-${{ inputs.dev_sha }}
+            --tag ghcr.io/${{ env.OWNER_LC }}/user-service:${{ inputs.version }} \
+            --tag ghcr.io/${{ env.OWNER_LC }}/user-service:latest \
+            ghcr.io/${{ env.OWNER_LC }}/user-service:dev-${{ inputs.user_dev_sha }}
+
+      - name: Retag post-service
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ env.OWNER_LC }}/post-service:${{ inputs.version }} \
+            --tag ghcr.io/${{ env.OWNER_LC }}/post-service:latest \
+            ghcr.io/${{ env.OWNER_LC }}/post-service:dev-${{ inputs.post_dev_sha }}
