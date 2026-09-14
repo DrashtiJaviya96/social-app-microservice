@@ -6,11 +6,6 @@ on:
     paths:
       - 'user_service/**'
       - '.github/workflows/user-service-ci.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'user_service/**'
-      - '.github/workflows/user-service-ci.yml'
 
 concurrency:
   group: user-service-${{ github.ref }}
