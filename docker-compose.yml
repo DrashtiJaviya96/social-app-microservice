@@ -1,0 +1,70 @@
+services:
+  user_db:
+    image: postgres:15
+    container_name: user_db
+    environment:
+      POSTGRES_DB: ${USER_DB_NAME}
+      POSTGRES_USER: ${USER_DB_USER}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d ${USER_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  post_db:
+    image: postgres:15
+    container_name: post_db
+    environment:
+      POSTGRES_DB: ${POST_DB_NAME}
+      POSTGRES_USER: ${POST_DB_USER}
+      POSTGRES_PASSWORD: ${POST_DB_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - post_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POST_DB_USER} -d ${POST_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  user_service:
+    build: ./user_service
+    container_name: user_service
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./user_service:/app
+    depends_on:
+      user_db:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - userservice
+
+  post_service:
+    build: ./post_service
+    container_name: post_service
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    volumes:
+      - ./post_service:/app
+    depends_on:
+      post_db:
+        condition: service_healthy
+      user_service:
+        condition: service_started
+
+volumes:
+  user_db_data:
+  post_db_data:
