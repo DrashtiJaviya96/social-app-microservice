@@ -92,6 +92,7 @@ jobs:
               -e USER_DB_HOST=shared-db -e USER_DB_PORT=5432 -e USER_DB_NAME=shared_db \
               -e USER_DB_USER=appuser -e USER_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
               -e DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
+              -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
               -e DJANGO_DEBUG=False \
               -e ALLOWED_HOSTS=${{ env.INSTANCE_IP }} \
               ghcr.io/${{ env.OWNER_LC }}/user-service:${{ inputs.version }}
@@ -99,6 +100,7 @@ jobs:
               -e POST_DB_HOST=shared-db -e POST_DB_PORT=5432 -e POST_DB_NAME=shared_db \
               -e POST_DB_USER=appuser -e POST_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
               -e DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
+              -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
               -e DJANGO_DEBUG=False \
               -e ALLOWED_HOSTS=${{ env.INSTANCE_IP }} \
               ghcr.io/${{ env.OWNER_LC }}/post-service:${{ inputs.version }}
